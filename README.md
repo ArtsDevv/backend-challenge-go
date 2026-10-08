@@ -306,7 +306,7 @@ do teste). Se Docker ou `migrate` não estiverem disponíveis, a suíte pula a s
 mensagem clara em vez de falhar. Ver **[test/integration/README.md](test/integration/README.md)**
 para o detalhe de cada teste (todos confirmados em execução real, inclusive sob `-race`).
 
-## Observações
+## Observabilidade
 
 - Logs estruturados em JSON (`log/slog`), com `correlationId`, `messageId`, `transactionId`,
   `walletId` e `providerId` quando aplicável — nunca credenciais ou o payload financeiro
