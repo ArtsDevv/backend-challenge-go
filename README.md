@@ -152,6 +152,18 @@ Postgres, o endpoint SQS ou o issuer OIDC estiverem incorretos/indisponíveis. V
 `HTTP_PORT` (default `8080`). Métricas Prometheus ficam em um listener HTTP separado em
 `METRICS_PORT` (default `9090`), em `GET /metrics`.
 
+### Imagem Docker
+
+```bash
+docker build -t backend-challenge-go .
+docker run --rm --env-file .env --network host backend-challenge-go
+```
+
+O `Dockerfile` é multi-stage: builder `golang:1.23-alpine` + runtime `distroless/static-debian12`
+(sem shell, sem libc, usuário não-root), ~32MB. Um workflow do GitHub Actions
+(`.github/workflows/docker-publish.yml`) builda e publica essa imagem em `ghcr.io/<repo>`
+automaticamente a cada Release publicada no GitHub.
+
 ## Autenticação — obtendo um token de teste no Keycloak
 
 Toda rota de negócio exige `Authorization: Bearer <token>` (client_credentials entre serviços).

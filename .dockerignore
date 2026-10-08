@@ -1,0 +1,13 @@
+.git
+.github
+.claude
+.idea
+.env
+.env.example
+test
+migrations
+deployments
+*.md
+Dockerfile
+.dockerignore
+.gitignore
