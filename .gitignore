@@ -1,0 +1,53 @@
+# ---- Go ----
+# Compiled binaries and object files
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.o
+*.a
+
+# Test binaries (built with `go test -c`)
+*.test
+
+# Go coverage output
+*.out
+coverage.html
+coverage.txt
+
+# Go workspace files
+go.work
+go.work.sum
+
+# Vendored dependencies (project does not commit vendor/)
+vendor/
+
+# ---- Build artifacts ----
+bin/
+dist/
+
+# ---- Environment / secrets ----
+.env
+.env.local
+*.env.local
+
+# ---- IDE / editor ----
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# ---- OS ----
+.DS_Store
+Thumbs.db
+
+# ---- Logs ----
+*.log
+
+# ---- Material do desafio / planejamento interno (não necessário no repo) ----
+/Doc Guia Projeto.pdf
+/ROADMAP.md
+
+# ---- Local tooling session state ----
+.claude/

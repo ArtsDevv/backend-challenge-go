@@ -1,0 +1,87 @@
+# docker-compose.yml — infraestrutura de desenvolvimento local do
+# backend-challenge-go: Postgres, LocalStack (SQS) e Keycloak (OIDC).
+#
+# A aplicação Go (cmd/api) roda FORA deste compose (ex.: `go run ./cmd/api`),
+# apontando para os serviços abaixo via localhost. Todas as variáveis têm um
+# default embutido (${VAR:-default}) para o stack subir mesmo sem nenhum
+# .env presente; para alinhar 100% com os defaults consumidos pela
+# aplicação, copie ../.env.example para ../.env e suba com:
+#
+#   docker compose --env-file ../.env -f docker-compose.yml up -d
+#
+# Nenhum segredo real: todas as credenciais abaixo (Postgres, Keycloak admin,
+# client secrets embutidos em keycloak/realm-export.json) existem apenas
+# neste ambiente de desenvolvimento local, nunca em produção.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: backend-challenge-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-wallet}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-wallet}
+      POSTGRES_DB: ${POSTGRES_DB:-backend_challenge}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-wallet} -d ${POSTGRES_DB:-backend_challenge}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # SQS (via LocalStack) é a única dependência AWS deste projeto. As filas
+  # FIFO de entrada/saída são criadas automaticamente pelo hook de init
+  # (localstack/init-queues.sh) assim que o container fica "ready".
+  localstack:
+    image: localstack/localstack:3.7
+    container_name: backend-challenge-localstack
+    restart: unless-stopped
+    environment:
+      SERVICES: sqs
+      DEFAULT_REGION: ${AWS_REGION:-us-east-1}
+      AWS_DEFAULT_REGION: ${AWS_REGION:-us-east-1}
+      PERSISTENCE: 1
+      DEBUG: 0
+    ports:
+      - "4566:4566"
+    volumes:
+      - localstack_data:/var/lib/localstack
+      - ./localstack/init-queues.sh:/etc/localstack/init/ready.d/init-queues.sh:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4566/_localstack/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+
+  # Keycloak em modo dev (start-dev), importando o realm mínimo deste
+  # projeto (clients client_credentials "provider-a"/"provider-b", client
+  # interno "wallet-service" e um usuário de teste) a partir de
+  # keycloak/realm-export.json.
+  keycloak:
+    image: quay.io/keycloak/keycloak:25.0
+    container_name: backend-challenge-keycloak
+    restart: unless-stopped
+    command: ["start-dev", "--import-realm"]
+    environment:
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      KC_HTTP_ENABLED: "true"
+      # Hostname fixo em localhost para que o issuer emitido nos tokens
+      # (http://localhost:${KEYCLOAK_PORT}/realms/<realm>) bata exatamente
+      # com OIDC_ISSUER_URL usado pela aplicação (go-oidc valida o issuer).
+      KC_HOSTNAME: localhost
+      KC_HOSTNAME_PORT: ${KEYCLOAK_PORT:-8081}
+      KC_HOSTNAME_STRICT: "false"
+      KC_HOSTNAME_STRICT_HTTPS: "false"
+      KC_HEALTH_ENABLED: "true"
+    ports:
+      - "${KEYCLOAK_PORT:-8081}:8080"
+    volumes:
+      - ./keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json:ro
+
+volumes:
+  postgres_data:
+  localstack_data:
